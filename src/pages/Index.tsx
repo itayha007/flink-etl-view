@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Refresh } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TestRunsTable } from '@/components/TestRunsTable';
@@ -39,7 +39,7 @@ const Index = () => {
             <CardContent className="pt-6">
               <p className="text-destructive">Failed to load test runs. Please try again.</p>
               <Button onClick={handleRefresh} className="mt-4">
-                <Refresh className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Retry
               </Button>
             </CardContent>
@@ -63,7 +63,7 @@ const Index = () => {
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={handleRefresh}>
-                <Refresh className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>
               <Button onClick={() => setCreateDialogOpen(true)}>
