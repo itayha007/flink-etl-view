@@ -34,7 +34,7 @@ export const CreateTestDialog = ({ open, onOpenChange }: CreateTestDialogProps) 
     onSuccess: (data) => {
       toast({
         title: "Test Started",
-        description: `Test "${data.testName}" has been started successfully`,
+        description: `Test with ID "${data.id}" has been started successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ['testRuns'] });
       onOpenChange(false);

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
 import { api } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,7 +23,7 @@ const TestDetail = () => {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'SUCCESS':
+      case 'FINISHED':
         return 'default';
       case 'FAILED':
         return 'destructive';
@@ -37,7 +36,7 @@ const TestDetail = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'SUCCESS':
+      case 'FINISHED':
         return '✅';
       case 'FAILED':
         return '❌';
@@ -57,13 +56,14 @@ const TestDetail = () => {
   };
 
   const downloadLogs = () => {
-    if (!testRun?.log) return;
+    if (!testRun?.logs || testRun.logs.length === 0) return;
     
-    const blob = new Blob([testRun.log], { type: 'text/plain' });
+    const logsText = testRun.logs.join('\n');
+    const blob = new Blob([logsText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${testRun.testName}-logs.txt`;
+    a.download = `${testRun.id}-logs.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -101,15 +101,29 @@ const TestDetail = () => {
   }
 
   const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return {
-      absolute: date.toLocaleString(),
-      relative: formatDistanceToNow(date, { addSuffix: true }),
-    };
+    try {
+      const date = new Date(dateTime);
+      if (isNaN(date.getTime())) {
+        return {
+          absolute: dateTime,
+          relative: 'Invalid date',
+        };
+      }
+      return {
+        absolute: date.toLocaleString(),
+        relative: formatDistanceToNow(date, { addSuffix: true }),
+      };
+    } catch (error) {
+      return {
+        absolute: dateTime,
+        relative: 'Invalid date',
+      };
+    }
   };
 
-  const startTime = formatDateTime(testRun.startTime);
-  const endTime = testRun.endTime ? formatDateTime(testRun.endTime) : null;
+  const startTime = formatDateTime(testRun.flinkJobStartTime || testRun.testCreationTime);
+  const endTime = testRun.flinkJobEndTime ? formatDateTime(testRun.flinkJobEndTime) : null;
+  const logsText = testRun.logs.join('\n');
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,7 +139,7 @@ const TestDetail = () => {
           
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{testRun.testName}</h1>
+              <h1 className="text-3xl font-bold text-foreground">{testRun.id}</h1>
               <p className="text-muted-foreground mt-1">
                 Image: <span className="font-mono">{testRun.imageTag}</span>
               </p>
@@ -144,19 +158,34 @@ const TestDetail = () => {
             <CardTitle>Test Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
-                <h4 className="font-medium text-foreground mb-2">Start Time</h4>
-                <p className="text-sm">{startTime.absolute}</p>
-                <p className="text-xs text-muted-foreground">{startTime.relative}</p>
+                <h4 className="font-medium text-foreground mb-2">Test Creation Time</h4>
+                <p className="text-sm">{formatDateTime(testRun.testCreationTime).absolute}</p>
+                <p className="text-xs text-muted-foreground">{formatDateTime(testRun.testCreationTime).relative}</p>
               </div>
+              {testRun.flinkJobStartTime && (
+                <div>
+                  <h4 className="font-medium text-foreground mb-2">Flink Job Start Time</h4>
+                  <p className="text-sm">{startTime.absolute}</p>
+                  <p className="text-xs text-muted-foreground">{startTime.relative}</p>
+                </div>
+              )}
               {endTime && (
                 <div>
-                  <h4 className="font-medium text-foreground mb-2">End Time</h4>
+                  <h4 className="font-medium text-foreground mb-2">Flink Job End Time</h4>
                   <p className="text-sm">{endTime.absolute}</p>
                   <p className="text-xs text-muted-foreground">{endTime.relative}</p>
                 </div>
               )}
+              <div>
+                <h4 className="font-medium text-foreground mb-2">Number of Messages</h4>
+                <p className="text-sm">{testRun.numberOfMessages.toLocaleString()}</p>
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground mb-2">Current Lag</h4>
+                <p className="text-sm">{testRun.currentLag.toLocaleString()}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -164,13 +193,13 @@ const TestDetail = () => {
         {/* Logs */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Logs</CardTitle>
+            <CardTitle>Logs ({testRun.logs.length})</CardTitle>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copyToClipboard(testRun.log)}
-                disabled={!testRun.log}
+                onClick={() => copyToClipboard(logsText)}
+                disabled={testRun.logs.length === 0}
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Copy
@@ -179,7 +208,7 @@ const TestDetail = () => {
                 variant="outline"
                 size="sm"
                 onClick={downloadLogs}
-                disabled={!testRun.log}
+                disabled={testRun.logs.length === 0}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download
@@ -188,7 +217,7 @@ const TestDetail = () => {
           </CardHeader>
           <CardContent>
             <Textarea
-              value={testRun.log || 'No logs available'}
+              value={logsText || 'No logs available'}
               readOnly
               className="min-h-[300px] font-mono text-sm resize-none"
             />
@@ -196,68 +225,65 @@ const TestDetail = () => {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Kafka Messages */}
+          {/* Files */}
           <Card>
             <CardHeader>
-              <CardTitle>Kafka Messages ({testRun.kafkaMessages.length})</CardTitle>
+              <CardTitle>Generated Files ({testRun.files.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {testRun.kafkaMessages.length > 0 ? (
+              {testRun.files.length > 0 ? (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {testRun.kafkaMessages.map((message, index) => (
+                  {testRun.files.map((file, index) => (
                     <div key={index} className="p-3 bg-muted rounded-md">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Message {index + 1}
+                        <span className="text-sm font-medium">
+                          {file.fileName}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(message)}
+                          onClick={() => copyToClipboard(file.fileName)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
-                      <pre className="text-xs font-mono whitespace-pre-wrap break-all">
-                        {message}
-                      </pre>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>Size: {(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        <div>Created: {formatDateTime(file.creationTime).absolute}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">
-                  No Kafka messages recorded
+                  No files generated yet
                 </p>
               )}
             </CardContent>
           </Card>
 
-          {/* Output Files */}
+          {/* Assertions */}
           <Card>
             <CardHeader>
-              <CardTitle>Output HDFS Files ({testRun.outputFiles.length})</CardTitle>
+              <CardTitle>Assertions ({testRun.assertions.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {testRun.outputFiles.length > 0 ? (
+              {testRun.assertions.length > 0 ? (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {testRun.outputFiles.map((file, index) => (
+                  {testRun.assertions.map((assertion, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <span className="font-mono text-sm truncate flex-1 mr-2">
-                        {file}
+                      <span className="font-mono text-sm flex-1">
+                        {assertion.name}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(file)}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
+                      <Badge variant={assertion.status === 'PASSED' ? 'default' : 'destructive'}>
+                        {assertion.status === 'PASSED' ? '✅' : '❌'} {assertion.status}
+                      </Badge>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">
-                  No output files generated
+                  No assertions completed yet
                 </p>
               )}
             </CardContent>

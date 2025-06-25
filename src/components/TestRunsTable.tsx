@@ -24,7 +24,7 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
 
   const getStatusVariant = (status: TestRun['status']) => {
     switch (status) {
-      case 'SUCCESS':
+      case 'FINISHED':
         return 'default';
       case 'FAILED':
         return 'destructive';
@@ -37,7 +37,7 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
 
   const getStatusIcon = (status: TestRun['status']) => {
     switch (status) {
-      case 'SUCCESS':
+      case 'FINISHED':
         return '✅';
       case 'FAILED':
         return '❌';
@@ -49,11 +49,24 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
   };
 
   const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return {
-      absolute: date.toLocaleString(),
-      relative: formatDistanceToNow(date, { addSuffix: true }),
-    };
+    try {
+      const date = new Date(dateTime);
+      if (isNaN(date.getTime())) {
+        return {
+          absolute: dateTime,
+          relative: 'Invalid date',
+        };
+      }
+      return {
+        absolute: date.toLocaleString(),
+        relative: formatDistanceToNow(date, { addSuffix: true }),
+      };
+    } catch (error) {
+      return {
+        absolute: dateTime,
+        relative: 'Invalid date',
+      };
+    }
   };
 
   if (isLoading) {
@@ -81,9 +94,9 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
     );
   }
 
-  // Sort by start time (most recent first)
+  // Sort by creation time (most recent first)
   const sortedTestRuns = [...testRuns].sort(
-    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    (a, b) => new Date(b.testCreationTime).getTime() - new Date(a.testCreationTime).getTime()
   );
 
   return (
@@ -91,7 +104,7 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Test Name</TableHead>
+            <TableHead>Test ID</TableHead>
             <TableHead>Image Tag</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Start Time</TableHead>
@@ -101,8 +114,8 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
         </TableHeader>
         <TableBody>
           {sortedTestRuns.map((testRun) => {
-            const startTime = formatDateTime(testRun.startTime);
-            const endTime = testRun.endTime ? formatDateTime(testRun.endTime) : null;
+            const startTime = formatDateTime(testRun.flinkJobStartTime || testRun.testCreationTime);
+            const endTime = testRun.flinkJobEndTime ? formatDateTime(testRun.flinkJobEndTime) : null;
 
             return (
               <TableRow 
@@ -111,7 +124,7 @@ export const TestRunsTable = ({ testRuns, isLoading }: TestRunsTableProps) => {
                 onClick={() => navigate(`/test/${testRun.id}`)}
               >
                 <TableCell className="font-medium">
-                  {testRun.testName}
+                  {testRun.id}
                 </TableCell>
                 <TableCell className="font-mono text-sm">
                   {testRun.imageTag}
