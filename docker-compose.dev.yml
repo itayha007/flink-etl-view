@@ -1,0 +1,46 @@
+
+version: '3.8'
+
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    networks:
+      - dev-network
+
+  # Development backend placeholder
+  backend-dev:
+    image: your-backend-image:dev
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGODB_URI=mongodb://mongo-dev:27017/flink-test-db
+      - NODE_ENV=development
+    depends_on:
+      - mongo-dev
+    networks:
+      - dev-network
+
+  mongo-dev:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-dev-data:/data/db
+    networks:
+      - dev-network
+
+volumes:
+  mongo-dev-data:
+
+networks:
+  dev-network:
+    driver: bridge
