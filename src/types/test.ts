@@ -1,14 +1,28 @@
 
+export interface TestFile {
+  fileName: string;
+  creationTime: string;
+  size: number;
+}
+
+export interface TestAssertion {
+  name: string;
+  status: 'PASSED' | 'FAILED';
+}
+
 export interface TestRun {
   id: string;
-  testName: string;
+  testCreationTime: string;
+  flinkJobStartTime?: string;
+  flinkJobEndTime?: string;
   imageTag: string;
-  status: 'SUCCESS' | 'FAILED' | 'RUNNING';
-  startTime: string;
-  endTime?: string;
-  kafkaMessages: string[];
-  outputFiles: string[];
-  log: string;
+  numberOfMessages: number;
+  currentLag: number;
+  files: TestFile[];
+  logs: string[];
+  assertions: TestAssertion[];
+  testStatus: 'PASSED' | 'FAILED' | 'RUNNING';
+  status: 'FINISHED' | 'RUNNING' | 'FAILED';
 }
 
 export interface CreateTestRequest {
