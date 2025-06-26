@@ -1,3 +1,4 @@
+
 import { TestRun, CreateTestRequest } from '@/types/test';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -99,8 +100,19 @@ const mockTestRuns: TestRun[] = [
 
 export const api = {
   async getTestRuns(): Promise<TestRun[]> {
+    // Skip API call entirely in development when no backend is running
+    if (!import.meta.env.VITE_API_URL) {
+      console.log('No API URL provided, using mock data');
+      return new Promise(resolve => setTimeout(() => resolve(mockTestRuns), 100));
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/test/runs`);
+      const response = await fetch(`${API_BASE_URL}/test/runs`, {
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch test runs');
       }
@@ -112,8 +124,23 @@ export const api = {
   },
 
   async getTestRun(id: string): Promise<TestRun> {
+    // Skip API call entirely in development when no backend is running
+    if (!import.meta.env.VITE_API_URL) {
+      console.log('No API URL provided, using mock data');
+      const testRun = mockTestRuns.find(run => run.id === id);
+      if (!testRun) {
+        throw new Error('Test run not found');
+      }
+      return new Promise(resolve => setTimeout(() => resolve(testRun), 100));
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/test/runs/${id}`);
+      const response = await fetch(`${API_BASE_URL}/test/runs/${id}`, {
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch test run');
       }
@@ -129,11 +156,34 @@ export const api = {
   },
 
   async createTestRun(request: CreateTestRequest): Promise<TestRun> {
+    // Skip API call entirely in development when no backend is running
+    if (!import.meta.env.VITE_API_URL) {
+      console.log('No API URL provided, creating mock test run');
+      const newTestRun: TestRun = {
+        id: `test-${Date.now()}`,
+        testCreationTime: new Date().toLocaleString(),
+        flinkJobStartTime: new Date().toLocaleString(),
+        imageTag: request.imageTag,
+        numberOfMessages: 0,
+        currentLag: 0,
+        files: [],
+        logs: [
+          `${new Date().toLocaleString()}: starting flink e2e`,
+          `${new Date().toLocaleString()}: populatingTopic with messages`
+        ],
+        assertions: [],
+        testStatus: "RUNNING",
+        status: "RUNNING"
+      };
+      return new Promise(resolve => setTimeout(() => resolve(newTestRun), 100));
+    }
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/test/run?image=${encodeURIComponent(request.imageTag)}&testName=${encodeURIComponent(request.testName)}`,
         {
           method: 'POST',
+          mode: 'cors',
           headers: {
             'Content-Type': 'application/json',
           },
