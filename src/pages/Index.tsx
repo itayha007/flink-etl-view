@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TestRunsTable } from '@/components/TestRunsTable';
 import { CreateTestDialog } from '@/components/CreateTestDialog';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { api } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -62,6 +63,7 @@ const Index = () => {
               </p>
             </div>
             <div className="flex gap-3">
+              <ThemeToggle />
               <Button variant="outline" onClick={handleRefresh}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh

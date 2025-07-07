@@ -164,7 +164,7 @@ export const api = {
         testCreationTime: new Date().toLocaleString(),
         flinkJobStartTime: new Date().toLocaleString(),
         imageTag: request.imageTag,
-        numberOfMessages: 0,
+        numberOfMessages: request.numberOfMessages,
         currentLag: 0,
         files: [],
         logs: [
@@ -179,16 +179,24 @@ export const api = {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/test/run?image=${encodeURIComponent(request.imageTag)}&testName=${encodeURIComponent(request.testName)}`,
-        {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const requestBody: any = {
+        imageTag: request.imageTag,
+        numberOfMessages: request.numberOfMessages,
+      };
+
+      if (request.commitSha) {
+        requestBody.commitSha = request.commitSha;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/tasks/run/createTest`, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
       if (!response.ok) {
         throw new Error('Failed to create test run');
       }
@@ -200,7 +208,7 @@ export const api = {
         testCreationTime: new Date().toLocaleString(),
         flinkJobStartTime: new Date().toLocaleString(),
         imageTag: request.imageTag,
-        numberOfMessages: 0,
+        numberOfMessages: request.numberOfMessages,
         currentLag: 0,
         files: [],
         logs: [

@@ -26,6 +26,7 @@ export interface TestRun {
 }
 
 export interface CreateTestRequest {
-  testName: string;
   imageTag: string;
+  numberOfMessages: number;
+  commitSha?: string;
 }
